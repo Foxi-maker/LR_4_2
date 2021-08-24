@@ -14,7 +14,7 @@ int main()
 	double VerticalStep = VerticalEnd / NumVerticalStep;					//h_1
 
 	//Time grid
-	double TimeEnd = 1.;
+	double TimeEnd = 10.;
 	int NumTimeStep = 5;
 	double TimeStep = TimeEnd / NumTimeStep;				//tau
 
@@ -25,7 +25,6 @@ int main()
 	std::vector<std::vector<double>> U(NumVerticalStep, std::vector<double>(NumHorizontalStep));
 
 	//Initial conditions
-	//TODO: запихнуть в цикл при методе переменных направлений
 	for (int ExternIter = 0; ExternIter < NumHorizontalStep; ExternIter++)
 	{
 		U[0][ExternIter] = 1.;
@@ -49,80 +48,97 @@ int main()
 		std::cout << "\n";
 	}
 
-	//F components
-	std::vector<std::vector<double>> F(NumVerticalStep - 2, std::vector<double>(NumHorizontalStep - 2));
-	for (int RowIter = 0; RowIter < NumVerticalStep - 2; RowIter++)
-		for (int ColIter = 0; ColIter < NumHorizontalStep - 2; ColIter++)
-			F[RowIter][ColIter] = 2. / TimeStep * U[RowIter + 1][ColIter + 1] + 1. / ((double)HorizontalStep * HorizontalStep) * (U[RowIter + 1][ColIter + 2] - 2. * U[RowIter + 1][ColIter + 1] + U[RowIter + 1][ColIter]);
-
-	//std::cout << "F\n";
-	//for (const auto& fExtern : F)
-	//{
-	//	for (const auto& fInter : fExtern)
-	//		std::cout << fInter << " ";
-	//	std::cout << "\n";
-	//}
+	std::vector<double> alpha, betta;
 
 	for (int timeIter = 0; timeIter < 2 * NumTimeStep; timeIter++)
 	{
+		//F components
+		std::vector<std::vector<double>> F(NumVerticalStep - 2, std::vector<double>(NumHorizontalStep - 2));
+		for (int RowIter = 0; RowIter < NumVerticalStep - 2; RowIter++)
+			for (int ColIter = 0; ColIter < NumHorizontalStep - 2; ColIter++)
+				F[RowIter][ColIter] = -(2. / TimeStep * U[RowIter + 1][ColIter + 1] + 1. / (HorizontalStep * HorizontalStep) * (U[RowIter + 1][ColIter + 2] - 2. * U[RowIter + 1][ColIter + 1] + U[RowIter + 1][ColIter]));
 
-	}
+		//std::cout << "F\n";
+		//for (const auto& fExtern : F)
+		//{
+		//	for (const auto& fInter : fExtern)
+		//		std::cout << fInter << " ";
+		//	std::cout << "\n";
+		//}
 
-	std::vector<double> alpha, betta;
-	double MainDiagonal = -2. * (1. / (VerticalStep * VerticalStep) + 1. / TimeStep),
-		SideDiagonal = 1. / (VerticalStep * VerticalStep);
+		double MainDiagonal = -2. * (1. / (VerticalStep * VerticalStep) + 1. / TimeStep),
+			SideDiagonal = 1. / (VerticalStep * VerticalStep);
 
-	F[0][1] += SideDiagonal;
-	F.back()[F.size() - 2] += SideDiagonal;
-
-	//Along the X1 direction (Vertical)
-	for (int HorizIter = 0; HorizIter < NumHorizontalStep - 2; HorizIter++)
-	{
-		alpha.push_back(-SideDiagonal / MainDiagonal);
-		betta.push_back(F[0][HorizIter] / MainDiagonal);
-		for (int VertIter = 1; VertIter < NumVerticalStep - 3; VertIter++)
+		for (int HorizIter = 0; HorizIter < NumHorizontalStep - 2; HorizIter++)
 		{
-			double denominator = MainDiagonal + SideDiagonal * alpha.back();
-			alpha.push_back(-SideDiagonal / denominator);
-			betta.push_back((-SideDiagonal * betta.back() + F[VertIter][HorizIter]) / denominator);
+			F[0][HorizIter] += SideDiagonal;
+			F.back()[HorizIter] += SideDiagonal;
 		}
-		U[NumVerticalStep - 2][HorizIter + 1] = (-SideDiagonal * betta.back() + F[NumVerticalStep - 3][HorizIter]) / (MainDiagonal + SideDiagonal * alpha.back());
 
-		for (int VertIter = NumVerticalStep - 3; VertIter > 0; VertIter--)
-			U[VertIter][HorizIter + 1] = alpha[VertIter - 1] * U[VertIter + 1][HorizIter + 1] + betta[VertIter - 1];
-	}
-
-	//F_tilda components
-	for (int RowIter = 0; RowIter < NumVerticalStep - 2; RowIter++)
-		for (int ColIter = 0; ColIter < NumHorizontalStep - 2; ColIter++)
-			F[RowIter][ColIter] = 2. / TimeStep * U[RowIter + 1][ColIter + 1] + 1. / ((double)VerticalStep * VerticalStep) * (U[RowIter + 1][ColIter + 2] - 2. * U[RowIter + 1][ColIter + 1] + U[RowIter + 1][ColIter]);
-
-	MainDiagonal = -2. * (1. / (HorizontalStep * HorizontalStep) + 1. / TimeStep);
-	SideDiagonal = 1. / (HorizontalStep * HorizontalStep);
-
-	//Along the X2 direction (Horizontal)
-	for (int VertIter = 0; VertIter < NumVerticalStep - 2; VertIter++)
-	{
-		alpha.push_back(-SideDiagonal / MainDiagonal);
-		betta.push_back(F[VertIter][0] / MainDiagonal);
-		for (int HorizIter = 1; HorizIter < NumHorizontalStep - 3; HorizIter++)
+		//Along the X1 direction (Vertical)
+		for (int HorizIter = 0; HorizIter < NumHorizontalStep - 2; HorizIter++)
 		{
-			double denominator = MainDiagonal + SideDiagonal * alpha.back();
-			alpha.push_back(-SideDiagonal / denominator);
-			betta.push_back((-SideDiagonal * betta.back() + F[VertIter][HorizIter]) / denominator);
+			alpha.push_back(-SideDiagonal / MainDiagonal);
+			betta.push_back(F[0][HorizIter] / MainDiagonal);
+			for (int VertIter = 1; VertIter < NumVerticalStep - 3; VertIter++)
+			{
+				double denominator = MainDiagonal + SideDiagonal * alpha.back();
+				alpha.push_back(-SideDiagonal / denominator);
+				betta.push_back((-SideDiagonal * betta.back() + F[VertIter][HorizIter]) / denominator);
+			}
+			U[NumVerticalStep - 2][HorizIter + 1] = (-SideDiagonal * betta.back() + F[NumVerticalStep - 3][HorizIter]) / (MainDiagonal + SideDiagonal * alpha.back());
+
+			for (int VertIter = NumVerticalStep - 3; VertIter > 0; VertIter--)
+				U[VertIter][HorizIter + 1] = alpha[VertIter - 1] * U[VertIter + 1][HorizIter + 1] + betta[VertIter - 1];
 		}
-		U[VertIter + 1][NumHorizontalStep - 2] = (-SideDiagonal * betta.back() + F[VertIter][NumHorizontalStep - 3]) / (MainDiagonal + SideDiagonal * alpha.back());
 
-		for (int HorizIter = NumHorizontalStep - 3; HorizIter > 0; HorizIter--)
-			U[VertIter + 1][HorizIter] = alpha[HorizIter - 1] * U[VertIter + 1][HorizIter + 1] + betta[HorizIter - 1];
-	}
+		//F_tilda components
+		for (int RowIter = 0; RowIter < NumVerticalStep - 2; RowIter++)
+			for (int ColIter = 0; ColIter < NumHorizontalStep - 2; ColIter++)
+				F[RowIter][ColIter] = -(2. / TimeStep * U[RowIter + 1][ColIter + 1] + 1. / (VerticalStep * VerticalStep) * (U[RowIter + 2][ColIter + 1] - 2. * U[RowIter + 1][ColIter + 1] + U[RowIter][ColIter + 1]));
 
-	std::cout << "U\n";
-	for (const auto& UExtern : U)
-	{
-		for (const auto& UInter : UExtern)
-			std::cout << UInter << " ";
-		std::cout << "\n";
+		//std::cout << "F_tilda\n";
+		//for (const auto& fExtern : F)
+		//{
+		//	for (const auto& fInter : fExtern)
+		//		std::cout << fInter << " ";
+		//	std::cout << "\n";
+		//}
+
+		MainDiagonal = -2. * (1. / (HorizontalStep * HorizontalStep) + 1. / TimeStep);
+		SideDiagonal = 1. / (HorizontalStep * HorizontalStep);
+
+		for (int VertIter = 0; VertIter < NumVerticalStep - 2; VertIter++)
+		{
+			F[VertIter][0] += SideDiagonal;
+			F[VertIter].back() += SideDiagonal;
+		}
+
+		//Along the X2 direction (Horizontal)
+		for (int VertIter = 0; VertIter < NumVerticalStep - 2; VertIter++)
+		{
+			alpha.push_back(-SideDiagonal / MainDiagonal);
+			betta.push_back(F[VertIter][0] / MainDiagonal);
+			for (int HorizIter = 1; HorizIter < NumHorizontalStep - 3; HorizIter++)
+			{
+				double denominator = MainDiagonal + SideDiagonal * alpha.back();
+				alpha.push_back(-SideDiagonal / denominator);
+				betta.push_back((-SideDiagonal * betta.back() + F[VertIter][HorizIter]) / denominator);
+			}
+			U[VertIter + 1][NumHorizontalStep - 2] = (-SideDiagonal * betta.back() + F[VertIter][NumHorizontalStep - 3]) / (MainDiagonal + SideDiagonal * alpha.back());
+
+			for (int HorizIter = NumHorizontalStep - 3; HorizIter > 0; HorizIter--)
+				U[VertIter + 1][HorizIter] = alpha[HorizIter - 1] * U[VertIter + 1][HorizIter + 1] + betta[HorizIter - 1];
+		}
+
+		std::cout << "U\n";
+		for (const auto& UExtern : U)
+		{
+			for (const auto& UInter : UExtern)
+				std::cout << UInter << " ";
+			std::cout << "\n";
+		}
+
 	}
 
 	//Tridiagonal Matrix Algorithm
