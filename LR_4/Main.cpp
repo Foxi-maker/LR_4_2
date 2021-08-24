@@ -8,14 +8,14 @@ int main()
 	//X2 - Horizontal
 	//X1 - Vertical 
 	double HorizontalEnd = 1., VerticalEnd = 1.;
-	int NumHorizontalStep = 5;
-	int NumVerticalStep = 5;
+	int NumHorizontalStep = 10;
+	int NumVerticalStep = 10;
 	double HorizontalStep = HorizontalEnd / NumHorizontalStep;				//h_2
 	double VerticalStep = VerticalEnd / NumVerticalStep;					//h_1
 
 	//Time grid
-	double TimeEnd = 10.;
-	int NumTimeStep = 5;
+	double TimeEnd = 2.;
+	int NumTimeStep = 50;
 	double TimeStep = TimeEnd / NumTimeStep;				//tau
 
 	//Projecting the right side of equation
@@ -71,9 +71,17 @@ int main()
 
 		for (int HorizIter = 0; HorizIter < NumHorizontalStep - 2; HorizIter++)
 		{
-			F[0][HorizIter] += SideDiagonal;
-			F.back()[HorizIter] += SideDiagonal;
+			F[0][HorizIter] -= SideDiagonal;
+			F.back()[HorizIter] -= SideDiagonal;
 		}
+
+		//std::cout << "F\n";
+		//for (const auto& fExtern : F)
+		//{
+		//	for (const auto& fInter : fExtern)
+		//		std::cout << fInter << " ";
+		//	std::cout << "\n";
+		//}
 
 		//Along the X1 direction (Vertical)
 		for (int HorizIter = 0; HorizIter < NumHorizontalStep - 2; HorizIter++)
@@ -92,10 +100,22 @@ int main()
 				U[VertIter][HorizIter + 1] = alpha[VertIter - 1] * U[VertIter + 1][HorizIter + 1] + betta[VertIter - 1];
 		}
 
+		alpha.clear();
+		betta.clear();
+
 		//F_tilda components
 		for (int RowIter = 0; RowIter < NumVerticalStep - 2; RowIter++)
 			for (int ColIter = 0; ColIter < NumHorizontalStep - 2; ColIter++)
 				F[RowIter][ColIter] = -(2. / TimeStep * U[RowIter + 1][ColIter + 1] + 1. / (VerticalStep * VerticalStep) * (U[RowIter + 2][ColIter + 1] - 2. * U[RowIter + 1][ColIter + 1] + U[RowIter][ColIter + 1]));
+
+		MainDiagonal = -2. * (1. / (HorizontalStep * HorizontalStep) + 1. / TimeStep);
+		SideDiagonal = 1. / (HorizontalStep * HorizontalStep);
+
+		for (int VertIter = 0; VertIter < NumVerticalStep - 2; VertIter++)
+		{
+			F[VertIter][0] -= SideDiagonal;
+			F[VertIter].back() -= SideDiagonal;
+		}
 
 		//std::cout << "F_tilda\n";
 		//for (const auto& fExtern : F)
@@ -104,15 +124,6 @@ int main()
 		//		std::cout << fInter << " ";
 		//	std::cout << "\n";
 		//}
-
-		MainDiagonal = -2. * (1. / (HorizontalStep * HorizontalStep) + 1. / TimeStep);
-		SideDiagonal = 1. / (HorizontalStep * HorizontalStep);
-
-		for (int VertIter = 0; VertIter < NumVerticalStep - 2; VertIter++)
-		{
-			F[VertIter][0] += SideDiagonal;
-			F[VertIter].back() += SideDiagonal;
-		}
 
 		//Along the X2 direction (Horizontal)
 		for (int VertIter = 0; VertIter < NumVerticalStep - 2; VertIter++)
@@ -138,7 +149,8 @@ int main()
 				std::cout << UInter << " ";
 			std::cout << "\n";
 		}
-
+		alpha.clear();
+		betta.clear();
 	}
 
 	//Tridiagonal Matrix Algorithm
